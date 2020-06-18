@@ -25,7 +25,7 @@ CtfFind/micrographs_defocus_ctf.star
 3) Run <code> sh workflow.sh</code>
 
 ### Picking all micrigraphs
-# create empty directory of Kpicker/aligned
+#Create empty directory of Kpicker/aligned
 python Self-Supervised/kpicking_cpu.py --input_dir 'aligned' --output_dir 'Kpicker/aligned' --coordinate_suffix '_kpicker' --threshold 0.9  --threads 10 --particle_size 260  --bin_size 4
 
 ### using Localpicker for initial particle picking based on shapes

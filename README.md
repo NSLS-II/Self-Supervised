@@ -1,15 +1,16 @@
 # A Self-supervised workflow for particle picking in Cryo-EM
-#Authors: Donal McSweeney donal.mcs15@gmail.com
-#         Qun Liu qun.liu@gmail.com
+#Authors: Donal McSweeney donal.mcs15@gmail.com qun.liu@gmail.com
+#Referecne:  https://doi.org/10.1107/S2052252520007241
 # 
-Referecne:  https://doi.org/10.1107/S2052252520007241
 
-# 
+## System requirement
+1. Anaconda2 with cuda/GPU/tensorflow/keras support
+2. Relion2 or Relion3 compiled with GPU support
 
 ## Quickstart
 Download the Self-Supervised to the directory under relion main directory
 
-## Prepared ctf corrected micrograph star file, rename it as below
+## Prepare ctf corrected micrograph star file, rename it as below
 CtfFind/micrographs_defocus_ctf.star
 
 ### Pre-processing

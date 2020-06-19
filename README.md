@@ -32,7 +32,7 @@ CtfFind/micrographs_defocus_ctf.star
 python Self-Supervised/kpicking_cpu.py --input_dir 'aligned' --output_dir 'Kpicker/aligned' --coordinate_suffix '_kpicker' --threshold 0.9  --threads 10 --particle_size 260  --bin_size 4
 
 ### using Localpicker for initial particle picking based on shapes
-for mrcfile in `(ls */*.mrc)`; do 
-python -W ignore Self-Supervised/localpicker.py  --mrc_file=${mrcfile} --particle_size=260 --bin_size=9  --threshold=0.0015 --max_sigma=10
-done 
+'for mrcfile in `(ls */*.mrc)`; do ;
+python -W ignore Self-Supervised/localpicker.py  --mrc_file=${mrcfile} --particle_size=260 --bin_size=9  --threshold=0.0015 --max_sigma=10;
+done'
 

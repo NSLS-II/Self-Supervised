@@ -12,7 +12,7 @@
 Download the Self-Supervised to a directory under the relion project directory structure as it uses relion for
 2D class averaging. 
 
-## give an alias name for the directory containing motion corrected micrographs. 
+## Give an alias name for the directory containing motion corrected micrographs. 
 ln -s /path/to/motition-corrected/micrographs  aligned
 
 ## Do ctf correction, select ctf corrected micrographs for iterative training and pikcing, rename its star file as below

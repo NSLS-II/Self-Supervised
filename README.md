@@ -10,11 +10,7 @@
 
 ## Quickstart
 Download the Self-Supervised to a directory under the relion project directory structure as it uses relion for
-2D class averaging. The directory structure should look like:
-Self-Supervised
-Class2D
-Import
-CtfFind
+2D class averaging. 
 
 ## give an alias name for the directory containing motion corrected micrographs. 
 ln -s /path/to/motition-corrected/micrographs  aligned

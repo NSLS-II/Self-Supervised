@@ -1,5 +1,5 @@
 kpicker=YES
-check=NO
+check=YES
 
 ########################## ITERATIVE PURIFICATION OF PARTICLES by using CNN & relion ############################
 
@@ -14,14 +14,14 @@ if [ "${kpicker}" == "YES" ]; then
         while true; do
                 ### Re-center and Re-extract particles for training
                 rm -f Extract/aligned/*_extract.star Extract/aligned/*.mrcs  Extract/particles.star
-                mpirun -n 12 `which relion_preprocess_mpi` --i CtfFind/micrographs_selected_ctf.star \
+                mpirun -n 12 `which relion_preprocess_mpi` --i CtfFind/micrographs_defocus_ctf.star \
                                                         --reextract_data_star particles_selected.star  --part_star particles_good.star \
                                                         --part_dir Extract/ --extract --extract_size $box_size --scale 64 --norm --bg_radius 25 \
                                                         --white_dust -1 --black_dust -1 --invert_contrast  \
                                                         --recenter --recenter_x 0 --recenter_y 0 --recenter_z 0 
                                                         
                 # ktraining either from scrach or tuning pre-trained model
-                python  Self-Supervised/ktraining_aug.py --train_good 'particles_selected.star' \
+                python  Self-Supervised/ktraining_aug.py --train_good 'particles_good.star' \
                                 --particle_size $box_size  \
                                 --logdir  'Logfile'  \
                                 --bin_size $bin_size --model_save_file 'test_model.h5'
@@ -45,13 +45,13 @@ if [ "${kpicker}" == "YES" ]; then
 
                 ### Extract Kpicker particles and record the number of particles
                 rm -f Kpicker/aligned/*.mrcs  Kpicker/aligned/*extract.star  Kpicker/particles.star
-                mpirun -n 12 `which relion_preprocess_mpi` --i CtfFind/micrographs_selected_ctf.star   --coord_dir Kpicker/  --coord_suffix  _kpicker.star  --part_star  Kpicker/particles.star  --part_dir Kpicker/ --extract  --extract_size  $box_size --norm --bg_radius 25  --white_dust -1 --black_dust -1 --invert_contrast  --scale 64 
+                mpirun -n 12 `which relion_preprocess_mpi` --i CtfFind/micrographs_defocus_ctf.star   --coord_dir Kpicker/  --coord_suffix  _kpicker.star  --part_star  Kpicker/particles.star  --part_dir Kpicker/ --extract  --extract_size  $box_size --norm --bg_radius 25  --white_dust -1 --black_dust -1 --invert_contrast  --scale 64 
 
                 numberKpicker=`awk '{ if (NF > 2) print}'  Kpicker/particles.star |wc -l`
                 ##  Iterative 2D class averages to clean up training templates
 
                 if [ "${check}" == "YES" ]; then
-                        ## Display Kpicker extracted particles
+                        ## Display Kpicker particles
                         rm -f Kpicker/micrographs_selected.star
                         `which relion_manualpick` --i CtfFind/micrographs_defocus_ctf.star --odir Kpicker/ --pickname kpicker --allow_save   --fast_save --selection Kpicker/micrographs_selected.star --scale 0.15 --sigma_contrast 3 --black 0 --white 0 --lowpass 10 --angpix  $pixel --ctf_scale 1 --particle_diameter $ptl_size
                 fi
@@ -110,7 +110,7 @@ if [ "${kpicker}" == "YES" ]; then
                         else 
                                 ## Re-extraction of kpicked particles for 2D if not good enough
                                 rm -f Kpicker/aligned/*.mrcs   Kpicker/aligned/*extract.star  Kpicker/particles.star
-                                mpirun -n 12 `which relion_preprocess_mpi` --i CtfFind/micrographs_selected_ctf.star  \
+                                mpirun -n 12 `which relion_preprocess_mpi` --i CtfFind/micrographs_defocus_ctf.star  \
                                                                                         --reextract_data_star particles_selected.star  \
                                                                                 --part_star Kpicker/particles.star --part_dir Kpicker/ \
                                                                                 --extract --extract_size $box_size --scale 64 --norm --bg_radius 25 \

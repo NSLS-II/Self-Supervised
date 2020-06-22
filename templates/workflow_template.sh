@@ -1,5 +1,5 @@
 kpicker=YES
-check=YES
+check=NO
 
 ########################## ITERATIVE PURIFICATION OF PARTICLES by using CNN & relion ############################
 

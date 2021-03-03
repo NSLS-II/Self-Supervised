@@ -1,6 +1,6 @@
 local=YES
 c2d=YES
-check=YES
+check=NO
 
 ################### localPicker particle picking with local optimization ######
 if [ "${local}" == "YES" ]; then
@@ -54,7 +54,7 @@ if [ "${local}" == "YES" ]; then
 
     rm -f local/aligned/*_extract.star local/aligned/*.mrcs  local/particles.star
     # extraction box size in pixels
-    mpirun -n 12 `which relion_preprocess_mpi` --i CtfFind/micrographs_defocus_ctf.star --coord_dir local/ --coord_suffix  _local.star  --part_star local/particles.star  --part_dir  local/ --extract --extract_size  $box_size --norm --bg_radius 25 --white_dust -1 --black_dust -1 --invert_contrast  --scale 64  
+    mpirun -n 12 `which relion_preprocess_mpi` --i CtfFind/micrographs_selected_ctf.star --coord_dir local/ --coord_suffix  _local.star  --part_star local/particles.star  --part_dir  local/ --extract --extract_size  $box_size --norm --bg_radius 25 --white_dust -1 --black_dust -1 --invert_contrast  --scale 64  
 
 fi  
 ################## end of local particle picking ############
@@ -140,7 +140,7 @@ if [ "${c2d}" == "YES" ]; then
             fi
             rm -f Extract/aligned/*_extract.star Extract/aligned/*.mrcs  Extract/particles.star
 
-            mpirun -n 5 `which relion_preprocess_mpi` --i CtfFind/micrographs_defocus_ctf.star --reextract_data_star Select/particles_selected.star   --part_star Extract/particles.star --part_dir Extract/  --extract --extract_size $box_size --scale 64 --norm --bg_radius 25  --white_dust -1 --black_dust -1 --invert_contrast   --recenter --recenter_x 0 --recenter_y 0 --recenter_z 0 
+            mpirun -n 5 `which relion_preprocess_mpi` --i CtfFind/micrographs_selected_ctf.star --reextract_data_star Select/particles_selected.star   --part_star Extract/particles.star --part_dir Extract/  --extract --extract_size $box_size --scale 64 --norm --bg_radius 25  --white_dust -1 --black_dust -1 --invert_contrast   --recenter --recenter_x 0 --recenter_y 0 --recenter_z 0 
 
             ### percentage of good particles:
             #python /share/apps/autoEM/star2particle.py --ref  /share/d2/cryoarm200/relion3/relion30_tutorial/shiny_rename.star  --dist 20  --#comp Extract/particles.star |tee tmp.log

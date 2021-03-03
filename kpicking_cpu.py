@@ -20,8 +20,9 @@ from skimage.transform import resize
 from dataLoader import DataLoader
 from starReader import starRead
 
-## write coordinates to a star file
 def write_coordinate(coordinate, mrc_file, coordinate_suffix, output_dir):
+    """write particle to defined directory as star format
+    """
     mrc_basename = os.path.basename(mrc_file)
     print(mrc_basename)
     coordinate_name = os.path.join(
@@ -86,10 +87,9 @@ def image2Peaks(image2d, distance, threshold):
 def pick_mp(args):
     i, mrc_file, model_input_size, particle_size, coordinate_suffix, threshold, output_dir, bin_size = args
     time1 = time.time()
-    ## for Keras/tensorflow configuration
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = "3"
-#    gpulist = ['0', '1', '2', '3']
+    gpulist = ['0', '1', '2', '3']
 #    if str(i % 4) in gpulist:
 #        os.environ["CUDA_VISIBLE_DEVICES"] = str(i % 4)
 #        print("use GPU for micrograph # ", i, i % 4)
@@ -98,8 +98,6 @@ def pick_mp(args):
 #        print("use CPU for micrograph # ", i)
     # initialize the model
     #os.environ["CUDA_VISIBLE_DEVICES"] = str(i % 4)
-    
-    ### CPU only. 
     os.environ["CUDA_VISIBLE_DEVICES"] = ""
     from keras.optimizers import SGD
     from keras.models import load_model
@@ -113,7 +111,6 @@ def pick_mp(args):
     print(mrc_file)
     with mrcfile.open(mrc_file, mode='r', permissive=True) as mrc:
         # mrc.header.map = mrcfile.constants.MAP_ID
-        header = mrc.header
         body_2d = mrc.data
     # preprocess  micrograph
     print("raw shape: ", body_2d.shape[0], body_2d.shape[1])
@@ -121,7 +118,9 @@ def pick_mp(args):
     step_size = 4
     patch_size = int(round(particle_size/bin_size))
     d_min = int(round(0.5*patch_size/4.))
-    # patches extraction using rolling windows
+    resize_2d = (int(body_2d.shape[0]/patch_size)*64, int(body_2d.shape[1] / patch_size)*64)
+    body_2d = resize(body_2d, (resize_2d), mode='reflect', anti_aliasing=True)
+    # patches extraction using windows
     # https://gist.github.com/hasnainv/49dc4a85933de6b979f8
     # window_shape = (patch_size, patch_size)
     window_shape = (64, 64)
@@ -129,7 +128,6 @@ def pick_mp(args):
     nR, nC, H, W = patches.shape
     nWindow = nR * nC
     patches = np.reshape(patches, (nWindow, H, W))
-    #print("shape of extracted pathces: ", patches.shape, nR, nC)
     patches = (patches - patches.mean(axis=(1, 2), keepdims=1)) / patches.std(
         axis=(1, 2), keepdims=1)
     patches = patches.reshape(nWindow, model_input_size[1],
@@ -147,6 +145,7 @@ def pick_mp(args):
         list_coordinate[i][1] = (list_coordinate[i][1]*step_size+patch_size/2) * bin_size
     write_coordinate(list_coordinate, mrc_file, coordinate_suffix, output_dir)
     return list_coordinate
+
 
 def main():
     # define the options

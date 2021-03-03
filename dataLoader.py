@@ -1,14 +1,12 @@
 """"
 Script containing dataloader class
 """
-## DataLoader for read particles from relion star fileName
-## adapted from https://github.com/nejyeah/DeepPicker-python
+## DataLoader credit to https://github.com/nejyeah/DeepPicker-python
 
 import os
 import mrcfile
 import numpy as np
 import scipy.ndimage as ndimage
-from scipy.misc import imresize
 from sklearn import preprocessing
 from starReader import starRead
 
@@ -29,7 +27,6 @@ class DataLoader(object):
     @staticmethod
     def preprocess_particle(particle, model_input_size):
         # resize the particle to fit the model input
-        particle = imresize(particle, (model_input_size[1], model_input_size[2]), interp = 'bilinear', mode = 'L')
         # normalize the patch
         mean_value = particle.mean()
         std_value = particle.std()
@@ -114,10 +111,10 @@ class DataLoader(object):
         # the key is the mrc file name
         # the value is a list of the coordinates
         coordinate = {}
-        #path_star = os.path.split(starFileName)
+        path_star = os.path.split(starFileName)
         for i in range(len(mrcfilename_list)):
             fileName = mrcfilename_list[i]
-            #fileName = os.path.join(path_star[0], fileName)
+            fileName = os.path.join(path_star[0], fileName)
             if fileName in coordinate:
                 coordinate[fileName][0].append(int(float(coordinateX_list[i])))
                 coordinate[fileName][1].append(int(float(coordinateY_list[i])))

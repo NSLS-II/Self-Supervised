@@ -28,7 +28,7 @@ By default, the workflow uses 4 GPUs for 2D class average. Modify preprocess.sh 
 1) Configure settings in `Self-Supervised/config.ini`
 2) Run `python Self-Supervised/build_workflow.py`. This will generate a bash file for iterative training/picking.
 3) Run `sh workflow.sh`
-By default, the workflow uses 4 GPUs for 2D class average. Modify preprocess.sh if you use a different number of GPUs.
+By default, the workflow uses 4 GPUs for 2D class average. Modify workflow.sh if you use a different number of GPUs.
 
 ## Picking all micrigraphs: Create an empty directory of Kpicker/aligned if it does not exist, then run
 python Self-Supervised/kpicking_cpu.py --input_dir 'aligned' --output_dir 'Kpicker/aligned' --coordinate_suffix '_kpicker' --threshold 0.9  --threads 10 --particle_size 260  --bin_size 4

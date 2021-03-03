@@ -41,7 +41,7 @@ def add_files(config):
     run_dict['ptl_pixel'] = gen_params['ptl_pixel']
 
     run_dict['lp_bin_size'] = lp_params['lp_bin_size']
-    run_dict['lp_threshold'] = lp_params['lp_threshold']
+    #run_dict['lp_defocus'] = lp_params['lp_defocus']
     run_dict['lp_max_sigma'] = lp_params['lp_max_sigma']
 
 

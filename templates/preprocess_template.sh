@@ -1,4 +1,5 @@
 local=YES
+log=NO
 c2d=YES
 check=NO
 
@@ -17,27 +18,36 @@ if [ "${local}" == "YES" ]; then
         mkdir linked
     fi
 
+if [ "${log}" == "YES" ]; then
+
+### use relion Log 
+mpirun -n 12  `which relion_autopick_mpi` --i CtfFind/micrographs_defocus_ctf.star --odir local/ --pickname  local --LoG  --LoG_diam_min 150 --LoG_diam_max 250 --shrink 0 --lowpass 10 --LoG_adjust_threshold 0  --min_distance 100 
+
+else 
+
     ### use mirograph .star file for picking 
-
-    ### select micrographs with lowest 20 defocus. 
     column=`awk -F "#"  '/_rlnMicrographName/ {print $2}' CtfFind/micrographs_defocus_ctf.star`
-    list=`awk -v column=$column '/mrc/ { if (NF>2) {print $column}}' CtfFind/micrographs_defocus_ctf.star`  
-    for mrcfile in $list; do
-
-        # picking the directory 
+    column_df=`awk -F "#"  '/_rlnDefocusU/ {print $2}' CtfFind/micrographs_defocus_ctf.star`
+    list=`awk  -v column=$column -v column_df=$column_df '/mrc/ { if (NF>2) {print $column ":" $column_df}}' CtfFind/micrographs_defocus_ctf.star`  
+    for file_df in $list; do
+        mrcfile=`echo  $file_df |awk -F ":" '{print $1}'`
+        defocus=`echo  $file_df |awk -F ":" '{print $2}'`
+        lp_defocus=`echo $defocus \/ 10000 | bc -l`       # picking the directory 
         #for mrcfile in `(ls aligned/*.mrc |head -24 )`; do 
 
 
         if [ ! -f local/${mrcfile/.mrc/_local.star} ]; then
             echo $mrcfile   ${mrcfile/.mrc/_local.star}
 
-            ## particle size  in pixels
-            python -W ignore Self-Supervised/localpicker.py  --mrc_file=${mrcfile} --particle_size=$ptl_pixel --bin_size=$lp_bin_size  --threshold=$lp_threshold --max_sigma=$lp_max_sigma
+#### defocus-based picking using a local dynamic mask
+## particle size in pixels
+         #echo ${lp_defocus}
+            python -W ignore Self-Supervised/localpicker.py  --mrc_file=${mrcfile} --particle_size=$ptl_pixel --bin_size=$lp_bin_size  --defocus=${lp_defocus} --max_sigma=$lp_max_sigma
         fi
-
-        #cp -f $mrcfile linked/
-
     done
+
+fi   ### end of using either local or log 
+
 
     #if [ "${extract}" == "YES" ]; then 
     echo CtfFind/micrographs_selected_ctf.star > local/coords_suffix_local.star
@@ -54,7 +64,7 @@ if [ "${local}" == "YES" ]; then
 
     rm -f local/aligned/*_extract.star local/aligned/*.mrcs  local/particles.star
     # extraction box size in pixels
-    mpirun -n 12 `which relion_preprocess_mpi` --i CtfFind/micrographs_selected_ctf.star --coord_dir local/ --coord_suffix  _local.star  --part_star local/particles.star  --part_dir  local/ --extract --extract_size  $box_size --norm --bg_radius 25 --white_dust -1 --black_dust -1 --invert_contrast  --scale 64  
+    mpirun -n 12 `which relion_preprocess_mpi` --i CtfFind/micrographs_defocus_ctf.star --coord_dir local/ --coord_suffix  _local.star  --part_star local/particles.star  --part_dir  local/ --extract --extract_size  $box_size --norm --bg_radius 25 --white_dust -1 --black_dust -1 --invert_contrast  --scale 64  
 
 fi  
 ################## end of local particle picking ############
@@ -80,19 +90,7 @@ if [ "${c2d}" == "YES" ]; then
     ## initial 2D class average for statistics
     #module load cuda-7.5 openmpi-1.8.8  relion-2.1.0_gpu
 
-    mpirun  -n 5 `which relion_refine_mpi`  --o Class2D/c2d_local \
-                                            --i local/particles.star \
-                                            --dont_combine_weights_via_disc \
-                                            --no_parallel_disc_io \
-                                            --preread_images  --ctf  --fast_subsets  --pool 30 --pad 2 --iter 25  \
-                                            --only_flip_phases  \
-                                            --ctf_intact_first_peak \
-                                            --tau2_fudge 2  \
-                                            --fast_subsets \
-                                            --particle_diameter $ptl_size \
-                                            --K  $numClasses --flatten_solvent  --zero_mask  --oversampling 1 \
-                                            --psi_step 12 --offset_range 6 --offset_step 2 --norm --scale \
-                                            --j 2 --gpu  "0:1:2:3"
+    mpirun  -n 5 `which relion_refine_mpi`  --o Class2D/c2d_local   --i local/particles.star  --dont_combine_weights_via_disc    --no_parallel_disc_io   --preread_images  --ctf  --fast_subsets  --pool 30 --pad 2 --iter 25     --only_flip_phases     --ctf_intact_first_peak    --tau2_fudge 2    --fast_subsets   --particle_diameter $ptl_size   --K  $numClasses --flatten_solvent  --zero_mask  --oversampling 1   --psi_step 12 --offset_range 6 --offset_step 2 --norm --scale   --j 2 --gpu  "0:1:2:3"
 
     ### iteration of 2D class average until most particles are in major classes
     while true; do
@@ -138,28 +136,16 @@ if [ "${c2d}" == "YES" ]; then
             if [ ! -d  Extract/aligned ]; then
                 mkdir Extract/aligned
             fi
-            rm -f Extract/aligned/*_extract.star Extract/aligned/*.mrcs  Extract/particles.star
+            rm -rf Extract/*
 
-            mpirun -n 5 `which relion_preprocess_mpi` --i CtfFind/micrographs_selected_ctf.star --reextract_data_star Select/particles_selected.star   --part_star Extract/particles.star --part_dir Extract/  --extract --extract_size $box_size --scale 64 --norm --bg_radius 25  --white_dust -1 --black_dust -1 --invert_contrast   --recenter --recenter_x 0 --recenter_y 0 --recenter_z 0 
+            mpirun -n 5 `which relion_preprocess_mpi` --i CtfFind/micrographs_defocus_ctf.star --reextract_data_star Select/particles_selected.star   --part_star Extract/particles.star --part_dir Extract/  --extract --extract_size $box_size --scale 64 --norm --bg_radius 25  --white_dust -1 --black_dust -1 --invert_contrast   --recenter --recenter_x 0 --recenter_y 0 --recenter_z 0 
 
             ### percentage of good particles:
             #python /share/apps/autoEM/star2particle.py --ref  /share/d2/cryoarm200/relion3/relion30_tutorial/shiny_rename.star  --dist 20  --#comp Extract/particles.star |tee tmp.log
 
-            mpirun  -n 5 `which relion_refine_mpi`  --o Class2D/c2d_local \
-                                                    --i Extract/particles.star  \
-                                                    --dont_combine_weights_via_disc \
-                                                    --no_parallel_disc_io \
-                                                    --preread_images  --ctf  --fast_subsets   --pool 30 --pad 2 --iter 25  \
-                                                    --only_flip_phases  \
-                                                    --ctf_intact_first_peak \
-                                                    --tau2_fudge 2  \
-                                                    --fast_subsets \
-                                                    --particle_diameter $ptl_size \
-                                                    --K $numClasses --flatten_solvent  --zero_mask  --oversampling 1 \
-                                                    --psi_step 12 --offset_range 6 --offset_step 2 --norm --scale \
-                                                    --j 2 --gpu  "0:1:2:3"
+            mpirun  -n 5 `which relion_refine_mpi`  --o Class2D/c2d_local  --i Extract/particles.star   --dont_combine_weights_via_disc   --no_parallel_disc_io   --preread_images  --ctf  --fast_subsets   --pool 30 --pad 2 --iter 25    --only_flip_phases      --ctf_intact_first_peak  --tau2_fudge 2    --fast_subsets     --particle_diameter $ptl_size    --K $numClasses --flatten_solvent  --zero_mask  --oversampling 1  --psi_step 12 --offset_range 6 --offset_step 2 --norm --scale  --j 2 --gpu  "0:1:2:3"
             #  --strict_highres_exp 10
-            echo "here"
+            #echo "here"
             numTotal=`awk '{ if (NF > 2) print}' Class2D/c2d_local_it025_data.star |wc -l`
         else
 

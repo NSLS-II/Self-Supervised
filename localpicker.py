@@ -8,12 +8,12 @@ import numpy as np
 from optparse import OptionParser
 import mrcfile
 from dataLoader import DataLoader
-
-from skimage.filters import threshold_local
+import matplotlib.pyplot as plt
+from skimage.filters import threshold_local, median
 from skimage.feature import blob_doh, peak_local_max
 from skimage.feature import canny
 #from least_square_circle import leastsq_circle
-
+from scipy import ndimage 
 
 def local_max(img, labels, box_size=20):
     list_pks = labels.tolist()
@@ -49,24 +49,13 @@ def local_max(img, labels, box_size=20):
 
 
 def edge_remove(image):
-    # Detect edges
-    edges = canny(image, sigma=6)
-    nd0 = image.shape[0]
-    nd1 = image.shape[1]
-    edges_coords = peak_local_max(edges,
-                                  min_distance=1,
-                                  indices=True,
-                                  exclude_border=False)
+    pass
 
-    if len(edges_coords) > 10:
-        yc, xc, r, residu = leastsq_circle(edges_coords)
-        print(yc, xc, r, residu)
-        if r > 5000:
-            y, x = np.ogrid[-int(yc):nd0 - int(yc), -int(xc):nd1 - int(xc)]
-            mask = x * x + y * y >= (r - 10)**2
-            image[mask] = 1
-    return image
+def ice_detect(image):
+    pass
 
+def radial_profile(image,center):
+    pass
 
 def write_coordinate(coordinate, mrc_file, coordinate_suffix, dirname):
     mrc_basename = os.path.basename(mrc_file)
@@ -75,9 +64,6 @@ def write_coordinate(coordinate, mrc_file, coordinate_suffix, dirname):
     print(coordinate_name, " # of particles: ", len(coordinate))
 
     if len(coordinate) > 5:  # quality control check
-        if os.path.exists("linked/" + os.path.basename(mrc_file)):
-            os.remove("linked/" + os.path.basename(mrc_file))
-        os.link(mrc_file, "linked/" + os.path.basename(mrc_file))
         f = open(coordinate_name, 'w')
         f.write('data_\n\nloop_\n_rlnCoordinateX #1\n_rlnCoordinateY #2\n')
         for i in range(len(coordinate)):
@@ -103,12 +89,12 @@ def localPicker():
                       help="image size reduction",
                       metavar="VALUE",
                       default=9)
-    parser.add_option("--threshold",
-                      dest="threshold",
+    parser.add_option("--defocus",
+                      dest="defocus",
                       type="float",
-                      help="for peak detection",
+                      help="for defocus-based peak detection threshold, higher defocus, lower threshold",
                       metavar="VALUE",
-                      default=0.001)
+                      default=1.5)
     parser.add_option("--max_sigma",
                       dest="max_sigma",
                       type="int",
@@ -124,6 +110,14 @@ def localPicker():
     (opt, args) = parser.parse_args()
     distance = int(round(opt.particle_size / opt.bin_size))
 
+### scale threshold  between 0.001 and 0.002 based on defocus 
+    t = opt.defocus
+    tmin = 0.5  ## min defocus 
+    tmax = 3.0  ## max defocus 
+    rmin = 0.00008 
+    rmax = 0.00015
+    tnew = (t-tmin)/(tmax-tmin) * (rmax-rmin) + rmin  ## set up real threshold
+
     # Read input mrc file
     with mrcfile.open(opt.mrc_file, mode='r', permissive=True) as mrc:
         # mrc.header.map = mrcfile.constants.MAP_ID
@@ -134,19 +128,21 @@ def localPicker():
     print("size:", n_col, n_row)
 
     image_scaled = DataLoader.preprocess_micrograph_local(body_2d, opt.bin_size)
-    #image_scaled = edge_remove(image_scaled)
+#    image_scaled = median(image_scaled)
+#    image_scaled = edge_remove(image_scaled)
+#    image_scaled = ndimage.maximum_filter(image_scaled, size = 20)
     print("After binning:", len(image_scaled))
-
-    image_scaled = threshold_local(image_scaled, 9, mode='reflect')
-
-    blobs = blob_doh(image_scaled * -1.0,
-                     min_sigma=1,
+    image_scaled = threshold_local(image_scaled*-1.0,9, method='gaussian', mode='reflect')
+    #image_scaled = image_scaled > 1.2 
+    #print(image_scaled)
+    blobs = blob_doh(image_scaled,
+                     min_sigma=3,
                      max_sigma=opt.max_sigma,
-                     threshold=opt.threshold,
+                     threshold=tnew,
                      overlap=0.1)
 
     blobs = blobs.astype(int)
-    list_coordinate = local_max(image_scaled*-1.0, blobs, box_size=distance)
+    list_coordinate = local_max(image_scaled, blobs, box_size=distance)
 
     # Write coordinates to list
     for i in range(len(list_coordinate)):
